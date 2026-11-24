@@ -3,11 +3,14 @@
  * returns the top MAX_IMPACTS items (sorted by |delta| descending),
  * and provides an applyNews function that patches a deputies array.
  *
+ * News loads AUTOMATICALLY when the page opens (useEffect on mount) —
+ * no "Refresh news" click needed. The Refresh button still works to reload.
+ *
  * Falls back to the imported cachedNews array if the API call fails
  * (network down, dev mode without a Vercel runtime, etc.).
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { cachedNews } from '../data/news-fallback.js'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -168,6 +171,13 @@ export function useNews() {
       })
     }
   }, [])
+
+  // ── AUTO-LOAD: fetch the news once when the page opens ───────────────────
+  // Without this, the panel stays empty ("Click Refresh news…") until the
+  // user clicks the button — because nothing ever called refresh().
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
   return { ...state, refresh }
 }

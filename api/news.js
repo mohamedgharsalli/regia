@@ -15,12 +15,76 @@
  * Flow:
  *   1. Fetch Google News RSS for the region keyword.
  *   2. Parse XML titles / links / pubDates.
- *   3. Map each item to a NewsImpact via keyword heuristics.
- *   4. Return up to `max` impacts.
- *   5. On any error (network, parse, timeout), return cached fallback items.
+ *   3. Keep ONLY items from trusted Tunisian outlets (TRUSTED_SOURCES) AND
+ *      published within the last MAX_AGE_DAYS (3 days) — newest first.
+ *      (Google News returns "top" results, not the freshest, and from random
+ *      outlets: a Sfax query once returned a July article.)
+ *   4. Map each kept item to a NewsImpact via keyword heuristics.
+ *   5. Return up to `max` impacts.
+ *   6. On any error (network, parse, timeout) or when nothing survives the
+ *      filters, return the VERIFIED cached fallback items (real headlines,
+ *      dated on/before 2026-11-23 — never the old invented future-dated ones).
  *
  * No API key required — Google News RSS is public.
+ * NOTE: Mosaique FM has no public RSS feed (/feed/ is 404), Diwan FM and
+ * Watania sites do not resolve from here, and Facebook pages cannot be read
+ * without an API token — so the trusted outlets are reached through Google
+ * News, filtered by source domain below.
  */
+
+// ---------------------------------------------------------------------------
+// Trusted sources — Tunisian outlets the user trusts, plus international
+// outlets that cover Tunisia. Matching is by hostname (subdomains count).
+// ---------------------------------------------------------------------------
+
+const TRUSTED_SOURCES = [
+  'mosaiquefm.net',        // Mosaique FM
+  'diwanfm.net',           // Diwan FM
+  'watania.tn',            // Télévision Tunisienne (National TV)
+  'tap.info.tn',           // TAP (Agence Tunis Afrique Presse)
+  'lapresse.tn',           // La Presse de Tunisie
+  'businessnews.com.tn',   // Business News
+  'kapitalis.com',         // Kapitalis
+  'leconomistemaghrebin.com',
+  'webmanagercenter.com',
+  'tunisienumerique.com',  // Tunisie Numérique
+  'nawaat.org',
+  'jeuneafrique.com',
+  'africanmanager.com',
+  'apanews.net',
+  'africtelegraph.com',
+  'mediaterranee.com',
+  'latribune.fr',
+  'reuters.com',
+  'boursorama.com',
+  'arabnews.com',
+  'carbonbrief.org',
+  'kyranislogistics.com',
+]
+
+/** Max age of a live news item, in days — older items are dropped. */
+const MAX_AGE_DAYS = 3
+
+function sourceHost(source) {
+  try {
+    return new URL(source).hostname.replace(/^www\./, '')
+  } catch {
+    return ''
+  }
+}
+
+function isTrusted(item) {
+  const host = sourceHost(item.source)
+  if (!host) return false
+  return TRUSTED_SOURCES.some((h) => host === h || host.endsWith('.' + h))
+}
+
+function isFresh(item) {
+  const t = Date.parse(item.pubDate)
+  if (Number.isNaN(t)) return true // no date: keep, do not guess
+  const ageMs = Date.now() - t
+  return ageMs >= 0 && ageMs <= MAX_AGE_DAYS * 24 * 60 * 60 * 1000
+}
 
 // ---------------------------------------------------------------------------
 // Region → search keyword + indicator heuristics
@@ -135,39 +199,40 @@ function decodeHtmlEntities(str) {
 }
 
 // ---------------------------------------------------------------------------
-// Fallback cache (mirrors src/data/news-fallback.js — duplicated here so the
-// serverless function has no dependency on the frontend src/ tree)
+// Fallback cache — VERIFIED real headlines (dated on/before 2026-11-23).
+// Same 17 items as src/data/news-fallback.js. Duplicated here so the
+// serverless function has no dependency on the frontend src/ tree.
 // ---------------------------------------------------------------------------
 
 const FALLBACK_CACHE = {
   tunis: [
-    { indicator: 'economy',   delta: -2, headline: 'Hausse des prix du transport en commun à Tunis : les usagers dénoncent l\'insupportable', source: 'Mosaïque FM', link: 'https://www.mosaiquefm.net/fr/actualite/transport-commun-tunis-hausse-tarifs-2026', date: '2026-11-27' },
-    { indicator: 'cohesion',  delta: -1, headline: 'Coût de la vie à Tunis : le panier moyen dépasse 1 200 dinars pour une famille de quatre', source: 'Business News', link: 'https://www.businessnews.com.tn/cout-vie-tunis-panier-famille-novembre-2026', date: '2026-11-25' },
-    { indicator: 'resources', delta:  1, headline: 'Lancement du plan de réhabilitation du réseau d\'eau potable dans les quartiers périphériques de Tunis', source: 'TAP', link: 'https://www.tap.info.tn/fr/rehabilitation-reseau-eau-tunis-peripherique-2026', date: '2026-11-28' },
+    { indicator: 'economy', delta: -2, headline: 'Safouane Ben Aïssa : « Le danger n’est pas l’effondrement », mais l’enlisement de l’économie tunisienne', source: 'Business News', link: 'https://businessnews.com.tn/2026/11/23/safouane-ben-aissa-le-danger-nest-pas-leffondrement-mais-lenlisement-de-leconomie-tunisienne/1430134/', date: '2026-11-23' },
+    { indicator: 'economy', delta: -1, headline: 'AGENDA ECO | du 16 au 22 novembre 2026 : budget 2027, emploi des jeunes, industrie et grands rendez-vous mondiaux', source: 'Webmanagercenter', link: 'https://www.webmanagercenter.com/2026/11/16/577189/agenda-eco-du-16-au-22-novembre-2026-budget-2027-emploi-des-jeunes-industrie-et-grands-rendez-vous-mondiaux/', date: '2026-11-16' },
+    { indicator: 'economy', delta: 1, headline: 'Bourse de Tunis : le Tunindex progresse de 0,48 % à 19 323,78 points', source: 'Webmanagercenter', link: 'https://www.webmanagercenter.com/2026/11/23/577835/bourse-de-tunis-le-tunindex-progresse-de-048-a-19-32378-points/', date: '2026-11-23' },
   ],
   'sidi-bouzid': [
-    { indicator: 'resources', delta: -3, headline: 'Sidi Bouzid : la sécheresse menace la récolte d\'olivier et aggrave la crise de l\'eau', source: 'Kapitalis', link: 'https://www.kapitalis.com/tunisie/sidi-bouzid-secheresse-olivier-eau-2026', date: '2026-11-26' },
-    { indicator: 'economy',   delta: -2, headline: 'Chômage rural à Sidi Bouzid : les jeunes agriculteurs réclament un accès aux crédits d\'irrigation', source: 'L\'Economiste Maghrébin', link: 'https://www.leconomistemaghrebin.com/sidi-bouzid-chomage-rural-irrigation-2026', date: '2026-11-25' },
+    { indicator: 'economy', delta: -2, headline: 'سيدي بوزيد: فلاحون يُطالبون بصرف منحهم', source: 'Mosaique FM', link: 'https://www.mosaiquefm.net/ar/%D8%A3%D8%AE%D8%A8%D8%A7%D8%B1-%D8%AA%D9%88%D9%86%D8%B3-%D8%AC%D9%87%D8%A7%D8%AA/1537915/%D8%B3%D9%8A%D8%AF%D9%8A-%D8%A8%D9%88%D8%B2%D9%8A%D8%AF-%D9%81%D9%84%D8%A7%D8%AD%D9%88%D9%86-%D9%8A-%D8%B7%D8%A7%D9%84%D8%A8%D9%88%D9%86-%D8%A8%D8%B5%D8%B1%D9%81-%D9%85%D9%86%D8%AD%D9%87%D9%85', date: '2026-11-23' },
+    { indicator: 'cohesion', delta: -1, headline: 'سيدي بوزيد: سائقو التاكسي يطالبون بالتحقيق في قائمة إسناد الرخص', source: 'Mosaique FM', link: 'https://www.mosaiquefm.net/ar/%D8%A3%D8%AE%D8%A8%D8%A7%D8%B1-%D8%AA%D9%88%D9%86%D8%B3-%D8%AC%D9%87%D8%A7%D8%AA/1536237/%D8%B3%D9%8A%D8%AF%D9%8A-%D8%A8%D9%88%D8%B2%D9%8A%D8%AF-%D8%B3%D8%A7%D8%A6%D9%82%D9%88-%D8%A7%D9%84%D8%AA%D8%A7%D9%83%D8%B3%D9%8A-%D9%8A%D8%B7%D8%A7%D9%84%D8%A8%D9%88%D9%86-%D8%A7%D9%84%D8%AA%D8%AD%D9%82%D9%8A%D9%82-%D9%81%D9%8A-%D9%82%D8%A7%D8%A6%D9%85%D8%A9-%D8%A5%D8%B3%D9%86%D8%A7%D8%AF-%D8%A7%D9%84%D8%B1%D8%AE%D8%B5', date: '2026-11-09' },
   ],
   gafsa: [
-    { indicator: 'economy',   delta: -2, headline: 'CPG Gafsa : nouvelle grève dans les mines de phosphate après l\'échec des négociations salariales', source: 'Mosaïque FM', link: 'https://www.mosaiquefm.net/fr/cpg-gafsa-greve-mines-phosphate-2026', date: '2026-11-29' },
-    { indicator: 'cohesion',  delta: -2, headline: 'Pollution industrielle à Gafsa : les habitants du bassin minier portent plainte contre la CPG', source: 'Nawaat', link: 'https://nawaat.org/2026/11/27/gafsa-pollution-bassin-minier-plainte-cpg', date: '2026-11-27' },
-    { indicator: 'economy',   delta:  2, headline: 'Production de phosphate en hausse de 8 % au troisième trimestre 2026, annonce le groupe chimique tunisien', source: 'TAP', link: 'https://www.tap.info.tn/fr/production-phosphate-hausse-t3-2026', date: '2026-11-26' },
+    { indicator: 'economy', delta: 3, headline: 'Phosphate : un plan d’urgence de trois mois pour relancer la production et atteindre 4,3 millions de tonnes en 2027', source: 'Tunisie Numérique', link: 'https://www.tunisienumerique.com/phosphate-un-plan-durgence-de-trois-mois-pour-relancer-la-production-et-atteindre-43-millions-de-tonnes-en-2027/', date: '2026-11-22' },
+    { indicator: 'economy', delta: 2, headline: 'Phosphate : rénovation de 190 km de rail dès 2027', source: 'Tunisie Numérique', link: 'https://www.tunisienumerique.com/phosphate-tunisien-190-km-voies-ferrees-renovation-2027/', date: '2026-11-19' },
+    { indicator: 'resources', delta: 2, headline: 'Phosphate : 500 millions de dinars mobilisés pour porter la production à 4,3 millions de tonnes en 2027', source: 'Tunisie Numérique', link: 'https://www.tunisienumerique.com/phosphate-500-millions-de-dinars-mobilises-pour-porter-la-production-a-43-millions-de-tonnes-en-2027/', date: '2026-11-22' },
   ],
   sfax: [
-    { indicator: 'economy',   delta:  2, headline: 'Port de Sfax : record d\'exportations d\'huile d\'olive en novembre, plus de 45 000 tonnes expédiées', source: 'Reuters Africa', link: 'https://africa.reuters.com/sfax-port-olive-oil-exports-record-november-2026', date: '2026-11-28' },
-    { indicator: 'cohesion',  delta: -2, headline: 'Déchets industriels à Sfax : mobilisation citoyenne face à la pollution de la zone industrielle de Poudrière', source: 'Business News', link: 'https://www.businessnews.com.tn/sfax-dechets-pollution-zone-industrielle-2026', date: '2026-11-25' },
-    { indicator: 'economy',   delta:  1, headline: 'Sfax attire un investissement logistique de 180 MD pour l\'extension du port en eau profonde', source: 'L\'Economiste Maghrébin', link: 'https://www.leconomistemaghrebin.com/sfax-investissement-port-eau-profonde-2026', date: '2026-11-27' },
+    { indicator: 'resources', delta: 3, headline: 'Station de dessalement de Sfax : le Japon accorde un prêt complémentaire de 175,86 millions de dinars à la Tunisie', source: 'La Presse', link: 'https://www.lapresse.tn/2026/11/18/la-station-de-dessalement-de-leau-de-mer-de-sfax/', date: '2026-11-18' },
+    { indicator: 'economy', delta: 2, headline: 'Nouvelles grues aux ports de Radès et Sfax', source: 'Kyranis Logistics', link: 'https://www.kyranislogistics.com/fr/actualites/nouvelles-grues-ports-rades-sfax-novembre-2026/', date: '2026-11-21' },
+    { indicator: 'cohesion', delta: -2, headline: 'Sfax : une marche citoyenne annoncée le 29 novembre contre la dégradation des conditions de vie et les atteintes aux libertés', source: 'Business News', link: 'https://businessnews.com.tn/2026/11/18/sfax-une-marche-citoyenne-annoncee-le-29-novembre-contre-la-degradation-des-conditions-de-vie-et-les-atteintes-aux-libertes/1429306/', date: '2026-11-18' },
   ],
   kasserine: [
-    { indicator: 'economy',   delta: -2, headline: 'Kasserine : l\'économie frontalière sous pression après le renforcement des contrôles douaniers', source: 'Kapitalis', link: 'https://www.kapitalis.com/tunisie/kasserine-economie-frontaliere-douane-2026', date: '2026-11-26' },
-    { indicator: 'cohesion',  delta: -1, headline: 'Désenclavement de Kasserine : les travaux de la RN13 toujours en attente de financement', source: 'TAP', link: 'https://www.tap.info.tn/fr/desenclavement-kasserine-rn13-financement-2026', date: '2026-11-25' },
-    { indicator: 'resources', delta:  1, headline: '120 projets d\'infrastructure lancés à Kasserine dans le cadre du programme de développement régional 2026', source: 'Business News', link: 'https://www.businessnews.com.tn/kasserine-programme-developpement-regional-120-projets-2026', date: '2026-11-29' },
+    { indicator: 'economy', delta: 1, headline: 'Kasserine : six sites romains désormais placés sous protection officielle', source: 'Business News', link: 'https://businessnews.com.tn/2026/11/13/kasserine-six-sites-romains-desormais-places-sous-protection-officielle/1428665/', date: '2026-11-13' },
+    { indicator: 'cohesion', delta: 2, headline: 'Kasserine : les premières implantations de pacemakers ouvrent une nouvelle étape pour le CHU', source: 'Webmanagercenter', link: 'https://www.webmanagercenter.com/2026/11/16/577219/kasserine-les-premieres-implantations-de-pacemakers-ouvrent-une-nouvelle-etape-pour-le-chu/', date: '2026-11-16' },
+    { indicator: 'resources', delta: -2, headline: 'Kasserine : plusieurs heures sans eau potable en raison de travaux sur le réseau électrique', source: 'Business News', link: 'https://businessnews.com.tn/2026/11/07/kasserine-plusieurs-heures-sans-eau-potable-en-raison-de-travaux-sur-le-reseau-electrique/1427656/', date: '2026-11-07' },
   ],
   global: [
-    { indicator: 'economy',   delta: -2, headline: 'FMI : la Tunisie doit accélérer les réformes structurelles pour débloquer la prochaine tranche de prêt', source: 'Jeune Afrique', link: 'https://www.jeuneafrique.com/tunisie-fmi-reformes-structurelles-tranche-pret-2026', date: '2026-11-28' },
-    { indicator: 'economy',   delta: -1, headline: 'Inflation en Tunisie : l\'IPC annuel recule à 7,2 % en octobre mais pèse encore sur le pouvoir d\'achat', source: 'Reuters Africa', link: 'https://africa.reuters.com/tunisia-inflation-ipc-octobre-2026', date: '2026-11-27' },
-    { indicator: 'cohesion',  delta:  1, headline: 'Parlement tunisien : adoption du budget 2027 avec un accent sur les régions défavorisées', source: 'TAP', link: 'https://www.tap.info.tn/fr/budget-2027-adoption-parlement-regions-defavorisees', date: '2026-11-26' },
+    { indicator: 'resources', delta: -2, headline: 'COP31 : les raisons d’un fiasco, le pétrole au cœur du blocage', source: 'Boursorama', link: 'https://www.boursorama.com/videos/actualites-amp/cop31-les-raisons-d-un-fiasco-le-petrole-au-coeur-du-blocage-df843ff95b3f45713a82310471a535fc', date: '2026-11-23' },
+    { indicator: 'economy', delta: 1, headline: 'Xi, Trump, Putin agree to increase supply of global fuels', source: 'Carbon Brief', link: 'https://www.carbonbrief.org/daily-briefing-new-cop31-draft-apec-fuel-deal-senate-passes-permitting-bill', date: '2026-11-19' },
+    { indicator: 'economy', delta: -1, headline: 'Oil holds in tight range as Gulf attacks sustain risk premium', source: 'Arab News', link: 'https://www.arabnews.com/energy/oil-holds-in-tight-range-as-gulf-attacks-sustain-risk-premium-3013656', date: '2026-11-23' },
   ],
 }
 
@@ -229,21 +294,31 @@ export default async function handler(req, res) {
       return res.status(200).json({ items: getFallback(region, max), source: 'fallback' })
     }
 
-    // Map RSS items → NewsImpact
-    const impacts = rssItems.slice(0, max).map((item) => {
-      const classified = classifyHeadline(item.title)
-      return {
-        region,
-        indicator: classified?.indicator ?? defaultIndicator,
-        delta:     classified?.delta     ?? defaultDelta,
-        headline:  item.title,
-        source:    item.source || 'Google News',
-        link:      item.link,
-        date:      item.pubDate
-          ? new Date(item.pubDate).toISOString().slice(0, 10)
-          : new Date().toISOString().slice(0, 10),
-      }
-    })
+    // Map RSS items → NewsImpact, then keep only trusted + fresh, newest first
+    const impacts = rssItems
+      .map((item) => {
+        const classified = classifyHeadline(item.title)
+        return {
+          region,
+          indicator: classified?.indicator ?? defaultIndicator,
+          delta:     classified?.delta     ?? defaultDelta,
+          headline:  item.title,
+          source:    item.source || 'Google News',
+          link:      item.link,
+          date:      item.pubDate
+            ? new Date(item.pubDate).toISOString().slice(0, 10)
+            : new Date().toISOString().slice(0, 10),
+          _pubTime:  Date.parse(item.pubDate) || 0,
+        }
+      })
+      .filter((item) => isTrusted(item) && isFresh(item))
+      .sort((a, b) => b._pubTime - a._pubTime)
+      .slice(0, max)
+      .map(({ _pubTime, ...rest }) => rest)
+
+    if (!impacts.length) {
+      return res.status(200).json({ items: getFallback(region, max), source: 'fallback' })
+    }
 
     return res.status(200).json({ items: impacts, source: 'live' })
 
