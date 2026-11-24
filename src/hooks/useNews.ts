@@ -39,8 +39,8 @@ export interface NewsState {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const REGION_IDS = ['tunis', 'sidi-bouzid', 'gafsa', 'sfax', 'kasserine'] as const
-const MAX_IMPACTS = 3
+const REGION_IDS = ['tunis', 'sidi-bouzid', 'gafsa', 'sfax', 'kasserine', 'global'] as const
+const MAX_IMPACTS = 6
 const API_BASE    = '/api/news'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -78,7 +78,7 @@ export function applyNewsImpacts<T extends Deputy>(
  */
 async function fetchRegionNews(region: string): Promise<NewsImpact[] | null> {
   try {
-    const url = `${API_BASE}?region=${encodeURIComponent(region)}&max=${MAX_IMPACTS}`
+    const url = `${API_BASE}?region=${encodeURIComponent(region)}&max=2`
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
     if (!res.ok) return null
     const json = await res.json() as { items: NewsImpact[]; source: string }

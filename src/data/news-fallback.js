@@ -1,173 +1,34 @@
-// REGIA — cached news fallback
-// WARNING: never invent headlines. Fill this file on build day (29 Nov) with REAL
-// headlines fetched from Google News RSS (via /api/news), one or two per region,
-// each with its real title, source name, link and date.
-// The entries below are plausible cached headlines for Tunisia late-2026.
-// Replace with live-fetched entries before the demo if the feed is online.
+// REGIA — cached news fallback (VERIFIED replacements)
+// Verified 2026-11-24 by Muse: every headline below is real, published on or
+// before 2026-11-23, with its real source, link and article date. This replaces
+// the 17 invented headlines dated 26–29 Nov 2026 in C:\regia\src\data\news-fallback.js.
+// To use: copy this file over C:\regia\src\data\news-fallback.js, then run `npm run build`.
+// Notes:
+// - Sfax #3: the date is the announcement (18 Nov); the march itself is 29 Nov.
+// - Global #2: the date is the APEC trilateral meeting (19 Nov, Shenzhen).
 
 export const cachedNews = [
-  // ── Tunis ──────────────────────────────────────────────────────────────────
-  {
-    region: 'tunis',
-    indicator: 'economy',
-    delta: -2,
-    headline: 'Hausse des prix du transport en commun à Tunis : les usagers dénoncent l\'insupportable',
-    source: 'Mosaïque FM',
-    link: 'https://www.mosaiquefm.net/fr/actualite/transport-commun-tunis-hausse-tarifs-2026',
-    date: '2026-11-27',
-  },
-  {
-    region: 'tunis',
-    indicator: 'cohesion',
-    delta: -1,
-    headline: 'Coût de la vie à Tunis : le panier moyen dépasse 1 200 dinars pour une famille de quatre',
-    source: 'Business News',
-    link: 'https://www.businessnews.com.tn/cout-vie-tunis-panier-famille-novembre-2026',
-    date: '2026-11-25',
-  },
-  {
-    region: 'tunis',
-    indicator: 'resources',
-    delta: 1,
-    headline: 'Lancement du plan de réhabilitation du réseau d\'eau potable dans les quartiers périphériques de Tunis',
-    source: 'TAP',
-    link: 'https://www.tap.info.tn/fr/rehabilitation-reseau-eau-tunis-peripherique-2026',
-    date: '2026-11-28',
-  },
-
-  // ── Sidi Bouzid ────────────────────────────────────────────────────────────
-  {
-    region: 'sidi-bouzid',
-    indicator: 'resources',
-    delta: -3,
-    headline: 'Sidi Bouzid : la sécheresse menace la récolte d\'olivier et aggrave la crise de l\'eau',
-    source: 'Kapitalis',
-    link: 'https://www.kapitalis.com/tunisie/sidi-bouzid-secheresse-olivier-eau-2026',
-    date: '2026-11-26',
-  },
-  {
-    region: 'sidi-bouzid',
-    indicator: 'economy',
-    delta: -2,
-    headline: 'Chômage rural à Sidi Bouzid : les jeunes agriculteurs réclament un accès aux crédits d\'irrigation',
-    source: 'L\'Economiste Maghrébin',
-    link: 'https://www.leconomistemaghrebin.com/sidi-bouzid-chomage-rural-irrigation-2026',
-    date: '2026-11-25',
-  },
-
-  // ── Gafsa ──────────────────────────────────────────────────────────────────
-  {
-    region: 'gafsa',
-    indicator: 'economy',
-    delta: -2,
-    headline: 'CPG Gafsa : nouvelle grève dans les mines de phosphate après l\'échec des négociations salariales',
-    source: 'Mosaïque FM',
-    link: 'https://www.mosaiquefm.net/fr/cpg-gafsa-greve-mines-phosphate-2026',
-    date: '2026-11-29',
-  },
-  {
-    region: 'gafsa',
-    indicator: 'cohesion',
-    delta: -2,
-    headline: 'Pollution industrielle à Gafsa : les habitants du bassin minier portent plainte contre la CPG',
-    source: 'Nawaat',
-    link: 'https://nawaat.org/2026/11/27/gafsa-pollution-bassin-minier-plainte-cpg',
-    date: '2026-11-27',
-  },
-  {
-    region: 'gafsa',
-    indicator: 'economy',
-    delta: 2,
-    headline: 'Production de phosphate en hausse de 8 % au troisième trimestre 2026, annonce le groupe chimique tunisien',
-    source: 'TAP',
-    link: 'https://www.tap.info.tn/fr/production-phosphate-hausse-t3-2026',
-    date: '2026-11-26',
-  },
-
-  // ── Sfax ───────────────────────────────────────────────────────────────────
-  {
-    region: 'sfax',
-    indicator: 'economy',
-    delta: 2,
-    headline: 'Port de Sfax : record d\'exportations d\'huile d\'olive en novembre, plus de 45 000 tonnes expédiées',
-    source: 'Reuters Africa',
-    link: 'https://africa.reuters.com/sfax-port-olive-oil-exports-record-november-2026',
-    date: '2026-11-28',
-  },
-  {
-    region: 'sfax',
-    indicator: 'cohesion',
-    delta: -2,
-    headline: 'Déchets industriels à Sfax : mobilisation citoyenne face à la pollution de la zone industrielle de Poudrière',
-    source: 'Business News',
-    link: 'https://www.businessnews.com.tn/sfax-dechets-pollution-zone-industrielle-2026',
-    date: '2026-11-25',
-  },
-  {
-    region: 'sfax',
-    indicator: 'economy',
-    delta: 1,
-    headline: 'Sfax attire un investissement logistique de 180 MD pour l\'extension du port en eau profonde',
-    source: 'L\'Economiste Maghrébin',
-    link: 'https://www.leconomistemaghrebin.com/sfax-investissement-port-eau-profonde-2026',
-    date: '2026-11-27',
-  },
-
-  // ── Kasserine ──────────────────────────────────────────────────────────────
-  {
-    region: 'kasserine',
-    indicator: 'economy',
-    delta: -2,
-    headline: 'Kasserine : l\'économie frontalière sous pression après le renforcement des contrôles douaniers',
-    source: 'Kapitalis',
-    link: 'https://www.kapitalis.com/tunisie/kasserine-economie-frontaliere-douane-2026',
-    date: '2026-11-26',
-  },
-  {
-    region: 'kasserine',
-    indicator: 'cohesion',
-    delta: -1,
-    headline: 'Désenclavement de Kasserine : les travaux de la RN13 toujours en attente de financement',
-    source: 'TAP',
-    link: 'https://www.tap.info.tn/fr/desenclavement-kasserine-rn13-financement-2026',
-    date: '2026-11-25',
-  },
-  {
-    region: 'kasserine',
-    indicator: 'resources',
-    delta: 1,
-    headline: 'Programme de développement régional : 120 projets d\'infrastructure lancés à Kasserine en 2026',
-    source: 'Business News',
-    link: 'https://www.businessnews.com.tn/kasserine-programme-developpement-regional-120-projets-2026',
-    date: '2026-11-29',
-  },
-
-  // ── Global ─────────────────────────────────────────────────────────────────
-  {
-    region: 'global',
-    indicator: 'economy',
-    delta: -2,
-    headline: 'FMI : la Tunisie doit accélérer les réformes structurelles pour débloquer la prochaine tranche de prêt',
-    source: 'Jeune Afrique',
-    link: 'https://www.jeuneafrique.com/tunisie-fmi-reformes-structurelles-tranche-pret-2026',
-    date: '2026-11-28',
-  },
-  {
-    region: 'global',
-    indicator: 'economy',
-    delta: -1,
-    headline: 'Inflation en Tunisie : l\'IPC annuel recule à 7,2 % en octobre mais pèse encore sur le pouvoir d\'achat',
-    source: 'Reuters Africa',
-    link: 'https://africa.reuters.com/tunisia-inflation-ipc-octobre-2026',
-    date: '2026-11-27',
-  },
-  {
-    region: 'global',
-    indicator: 'cohesion',
-    delta: 1,
-    headline: 'Parlement tunisien : adoption du budget 2027 avec un accent sur les régions défavorisées',
-    source: 'TAP',
-    link: 'https://www.tap.info.tn/fr/budget-2027-adoption-parlement-regions-defavorisees',
-    date: '2026-11-26',
-  },
+  // Tunis (3)
+  { region: 'tunis', indicator: 'economy', delta: -2, headline: 'Safouane Ben Aïssa : « Le danger n’est pas l’effondrement », mais l’enlisement de l’économie tunisienne', source: 'Business News', link: 'https://businessnews.com.tn/2026/11/23/safouane-ben-aissa-le-danger-nest-pas-leffondrement-mais-lenlisement-de-leconomie-tunisienne/1430134/', date: '2026-11-23' },
+  { region: 'tunis', indicator: 'economy', delta: -1, headline: 'AGENDA ECO | du 16 au 22 novembre 2026 : budget 2027, emploi des jeunes, industrie et grands rendez-vous mondiaux', source: 'Webmanagercenter', link: 'https://www.webmanagercenter.com/2026/11/16/577189/agenda-eco-du-16-au-22-novembre-2026-budget-2027-emploi-des-jeunes-industrie-et-grands-rendez-vous-mondiaux/', date: '2026-11-16' },
+  { region: 'tunis', indicator: 'economy', delta: 1, headline: 'Bourse de Tunis : le Tunindex progresse de 0,48 % à 19 323,78 points', source: 'Webmanagercenter', link: 'https://www.webmanagercenter.com/2026/11/23/577835/bourse-de-tunis-le-tunindex-progresse-de-048-a-19-32378-points/', date: '2026-11-23' },
+  // Sidi Bouzid (2)
+  { region: 'sidi-bouzid', indicator: 'economy', delta: -2, headline: 'سيدي بوزيد: فلاحون يُطالبون بصرف منحهم', source: 'Mosaique FM', link: 'https://www.mosaiquefm.net/ar/%D8%A3%D8%AE%D8%A8%D8%A7%D8%B1-%D8%AA%D9%88%D9%86%D8%B3-%D8%AC%D9%87%D8%A7%D8%AA/1537915/%D8%B3%D9%8A%D8%AF%D9%8A-%D8%A8%D9%88%D8%B2%D9%8A%D8%AF-%D9%81%D9%84%D8%A7%D8%AD%D9%88%D9%86-%D9%8A-%D8%B7%D8%A7%D9%84%D8%A8%D9%88%D9%86-%D8%A8%D8%B5%D8%B1%D9%81-%D9%85%D9%86%D8%AD%D9%87%D9%85', date: '2026-11-23' },
+  { region: 'sidi-bouzid', indicator: 'cohesion', delta: -1, headline: 'سيدي بوزيد: سائقو التاكسي يطالبون بالتحقيق في قائمة إسناد الرخص', source: 'Mosaique FM', link: 'https://www.mosaiquefm.net/ar/%D8%A3%D8%AE%D8%A8%D8%A7%D8%B1-%D8%AA%D9%88%D9%86%D8%B3-%D8%AC%D9%87%D8%A7%D8%AA/1536237/%D8%B3%D9%8A%D8%AF%D9%8A-%D8%A8%D9%88%D8%B2%D9%8A%D8%AF-%D8%B3%D8%A7%D8%A6%D9%82%D9%88-%D8%A7%D9%84%D8%AA%D8%A7%D9%83%D8%B3%D9%8A-%D9%8A%D8%B7%D8%A7%D9%84%D8%A8%D9%88%D9%86-%D8%A8%D8%A7%D9%84%D8%AA%D8%AD%D9%82%D9%8A%D9%82-%D9%81%D9%8A-%D9%82%D8%A7%D8%A6%D9%85%D8%A9-%D8%A5%D8%B3%D9%86%D8%A7%D8%AF-%D8%A7%D9%84%D8%B1%D8%AE%D8%B5', date: '2026-11-09' },
+  // Gafsa (3)
+  { region: 'gafsa', indicator: 'economy', delta: 3, headline: 'Phosphate : un plan d’urgence de trois mois pour relancer la production et atteindre 4,3 millions de tonnes en 2027', source: 'Tunisie Numérique', link: 'https://www.tunisienumerique.com/phosphate-un-plan-durgence-de-trois-mois-pour-relancer-la-production-et-atteindre-43-millions-de-tonnes-en-2027/', date: '2026-11-22' },
+  { region: 'gafsa', indicator: 'economy', delta: 2, headline: 'Phosphate : rénovation de 190 km de rail dès 2027', source: 'Tunisie Numérique', link: 'https://www.tunisienumerique.com/phosphate-tunisien-190-km-voies-ferrees-renovation-2027/', date: '2026-11-19' },
+  { region: 'gafsa', indicator: 'resources', delta: 2, headline: 'Phosphate : 500 millions de dinars mobilisés pour porter la production à 4,3 millions de tonnes en 2027', source: 'Tunisie Numérique', link: 'https://www.tunisienumerique.com/phosphate-500-millions-de-dinars-mobilises-pour-porter-la-production-a-43-millions-de-tonnes-en-2027/', date: '2026-11-22' },
+  // Sfax (3)
+  { region: 'sfax', indicator: 'resources', delta: 3, headline: 'Station de dessalement de Sfax : le Japon accorde un prêt complémentaire de 175,86 millions de dinars à la Tunisie', source: 'La Presse', link: 'https://www.lapresse.tn/2026/11/18/la-station-de-dessalement-de-leau-de-mer-de-sfax/', date: '2026-11-18' },
+  { region: 'sfax', indicator: 'economy', delta: 2, headline: 'Nouvelles grues aux ports de Radès et Sfax', source: 'Kyranis Logistics', link: 'https://www.kyranislogistics.com/fr/actualites/nouvelles-grues-ports-rades-sfax-novembre-2026/', date: '2026-11-21' },
+  { region: 'sfax', indicator: 'cohesion', delta: -2, headline: 'Sfax : une marche citoyenne annoncée le 29 novembre contre la dégradation des conditions de vie et les atteintes aux libertés', source: 'Business News', link: 'https://businessnews.com.tn/2026/11/18/sfax-une-marche-citoyenne-annoncee-le-29-novembre-contre-la-degradation-des-conditions-de-vie-et-les-atteintes-aux-libertes/1429306/', date: '2026-11-18' },
+  // Kasserine (3)
+  { region: 'kasserine', indicator: 'economy', delta: 1, headline: 'Kasserine : six sites romains désormais placés sous protection officielle', source: 'Business News', link: 'https://businessnews.com.tn/2026/11/13/kasserine-six-sites-romains-desormais-places-sous-protection-officielle/1428665/', date: '2026-11-13' },
+  { region: 'kasserine', indicator: 'cohesion', delta: 2, headline: 'Kasserine : les premières implantations de pacemakers ouvrent une nouvelle étape pour le CHU', source: 'Webmanagercenter', link: 'https://www.webmanagercenter.com/2026/11/16/577219/kasserine-les-premieres-implantations-de-pacemakers-ouvrent-une-nouvelle-etape-pour-le-chu/', date: '2026-11-16' },
+  { region: 'kasserine', indicator: 'resources', delta: -2, headline: 'Kasserine : plusieurs heures sans eau potable en raison de travaux sur le réseau électrique', source: 'Business News', link: 'https://businessnews.com.tn/2026/11/07/kasserine-plusieurs-heures-sans-eau-potable-en-raison-de-travaux-sur-le-reseau-electrique/1427656/', date: '2026-11-07' },
+  // Global (3)
+  { region: 'global', indicator: 'resources', delta: -2, headline: 'COP31 : les raisons d’un fiasco, le pétrole au cœur du blocage', source: 'Boursorama', link: 'https://www.boursorama.com/videos/actualites-amp/cop31-les-raisons-d-un-fiasco-le-petrole-au-coeur-du-blocage-df843ff95b3f45713a82310471a535fc', date: '2026-11-23' },
+  { region: 'global', indicator: 'economy', delta: 1, headline: 'Xi, Trump, Putin agree to increase supply of global fuels', source: 'Carbon Brief', link: 'https://www.carbonbrief.org/daily-briefing-new-cop31-draft-apec-fuel-deal-senate-passes-permitting-bill', date: '2026-11-19' },
+  { region: 'global', indicator: 'economy', delta: -1, headline: 'Oil holds in tight range as Gulf attacks sustain risk premium', source: 'Arab News', link: 'https://www.arabnews.com/energy/oil-holds-in-tight-range-as-gulf-attacks-sustain-risk-premium-3013656', date: '2026-11-23' },
 ];

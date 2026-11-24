@@ -7,7 +7,7 @@ Build order for the sprint (started early: 23 Nov night). Check off each item as
 - [x] 1.2 Install deps: `npm install` (+ recharts for gauges/charts)
 - [ ] 1.3 Verify dev server runs: `npm run dev` → app opens in browser
 - [ ] 1.4 Copy this spec into `C:\REGIA\.kiro\specs\regia\` (requirements.md, design.md, tasks.md)
-- [ ] 1.5 Create public GitHub repo `regia` (public, MIT license) and push the scaffold
+- [x] 1.5 Create public GitHub repo `regia` (public, MIT license) and push the scaffold
 
 ## 2. Data — deputies (from regia-deputies-tunisia.md)
 - [x] 2.1 Create `src/data/deputies.js` with the 5 deputies: region, title, issues, facts + sources, starting indicators, sensitivities
@@ -41,7 +41,7 @@ Build order for the sprint (started early: 23 Nov night). Check off each item as
 - [x] 7.2 Second vote + Comparison component (both futures side by side)
 
 ## 8. Deploy, video, submit
-- [ ] 8.1 Deploy to Vercel, test the live URL end to end (with network, and with news blocked)
+- [x] 8.1 Deploy to Vercel, test the live URL end to end (with network, and with news blocked)
 - [ ] 8.2 Record demo video < 3 min (Tunisia → news → min-wage law → vote → amendment → comparison)
 - [ ] 8.3 Write Devpost submission: description + how Kiro was used (specs, steering, hooks)
 - [ ] 8.4 Submit on Devpost before Fri 4 Dec 2026, 23:00 Tunis

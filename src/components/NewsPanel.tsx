@@ -63,7 +63,7 @@ export function NewsPanel({ impacts, loading, dataSource, error, onRefresh }: Pr
       <div className="news-panel__header">
         <div className="news-panel__title-row">
           <h2 className="section-heading">
-            Regional news
+            Regional &amp; world news
             <span className="sim-badge sim-badge--inline">Simulated scenario</span>
           </h2>
           <SourceTag source={dataSource} />

@@ -1174,6 +1174,354 @@
   padding: 0 12px 12px;
 }
 
+/* ── 3D Chamber ─────────────────────────────────────────────── */
+.chamber-layout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+.chamber-3d {
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  height: 440px;
+
+  @media (max-width: 640px) {
+    height: 320px;
+  }
+}
+
+.chamber-3d canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Legend panel: visible on sm+ screens */
+.chamber-legend-panel {
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .chamber-legend-panel {
+    display: none;
+  }
+}
+
+/* Seat label HTML wrapper — drei injects this */
+.seat-label-wrap {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Spinner keyframe (also defined inline in Chamber3D for isolation) */
+@keyframes chamber-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Deputy detail panel ─────────────────────────────────────── */
+.deputy-detail {
+  flex: 0 0 220px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-self: stretch;
+
+  @media (max-width: 768px) {
+    flex: 1 1 auto;
+  }
+}
+
+.deputy-detail--losing {
+  border-color: var(--regia-gold);
+  box-shadow: 0 0 0 1px var(--regia-gold-dim);
+}
+
+.deputy-detail__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.deputy-detail__region {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-h);
+  line-height: 1.2;
+}
+
+.deputy-detail__title {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--regia-gold);
+  margin-top: 2px;
+}
+
+.deputy-detail__close {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1;
+  padding: 3px 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s;
+
+  &:hover {
+    border-color: var(--bar-low);
+    color: var(--bar-low);
+  }
+}
+
+.deputy-detail__issues {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.deputy-detail__indicators {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.deputy-detail__losing-note {
+  font-size: 11px;
+  color: var(--regia-gold);
+  margin: 0;
+  padding: 6px 8px;
+  background: var(--regia-gold-dim);
+  border-radius: 5px;
+  line-height: 1.5;
+}
+
+/* ── Custom law button variant ──────────────────────────────── */
+.law-btn--custom {
+  border-style: dashed;
+}
+
+.law-btn--custom.law-btn--active {
+  border-style: solid;
+}
+
+/* ── Custom law form ─────────────────────────────────────────── */
+.custom-law-form {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: var(--code-bg);
+  border: 1px solid var(--regia-teal);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+
+.custom-law-form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.custom-law-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.custom-law-form__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.custom-law-form__required {
+  color: var(--bar-low);
+}
+
+.custom-law-form__input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-h);
+  font-size: 14px;
+  padding: 8px 12px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--regia-teal);
+  }
+}
+
+.custom-law-form__textarea {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-h);
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px 12px;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--regia-teal);
+  }
+}
+
+.custom-law-form__effects {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.custom-law-form__effects-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0;
+}
+
+.custom-law-form__hint {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+}
+
+.custom-law-form__sliders {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.custom-law-form__lever {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-law-form__lever-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.custom-law-form__lever-option {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--text-h);
+  cursor: pointer;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  transition: border-color 0.2s, background 0.2s;
+
+  &:has(input:checked) {
+    border-color: var(--regia-teal);
+    background: var(--regia-teal-dim);
+  }
+
+  input[type="radio"] {
+    accent-color: var(--regia-teal);
+    margin: 0;
+  }
+}
+
+.custom-law-form__lever-hint {
+  font-size: 12px;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.custom-law-form__validation {
+  font-size: 12px;
+  color: var(--bar-mid);
+  margin: 0;
+  padding: 7px 12px;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: 6px;
+}
+
+/* ── Delta slider ────────────────────────────────────────────── */
+.delta-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.delta-slider__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.delta-slider__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.delta-slider__value {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 28px;
+  text-align: right;
+}
+
+.delta-slider__input {
+  width: 100%;
+  accent-color: var(--regia-teal);
+  cursor: pointer;
+}
+
+.delta-slider__ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text);
+  padding: 0 2px;
+}
+
 /* ── Footer ─────────────────────────────────────────────────── */
 .app-footer {
   border-top: 1px solid var(--border);

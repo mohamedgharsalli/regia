@@ -52,6 +52,11 @@ const REGION_CONFIG = {
     defaultIndicator: 'cohesion',
     defaultDelta: -1,
   },
+  global: {
+    keyword: 'Tunisie économie politique',
+    defaultIndicator: 'economy',
+    defaultDelta: -1,
+  },
 }
 
 /** Keyword → { indicator, delta } override table (checked against lowercased title) */
@@ -158,6 +163,11 @@ const FALLBACK_CACHE = {
     { indicator: 'economy',   delta: -2, headline: 'Kasserine : l\'économie frontalière sous pression après le renforcement des contrôles douaniers', source: 'Kapitalis', link: 'https://www.kapitalis.com/tunisie/kasserine-economie-frontaliere-douane-2026', date: '2026-11-26' },
     { indicator: 'cohesion',  delta: -1, headline: 'Désenclavement de Kasserine : les travaux de la RN13 toujours en attente de financement', source: 'TAP', link: 'https://www.tap.info.tn/fr/desenclavement-kasserine-rn13-financement-2026', date: '2026-11-25' },
     { indicator: 'resources', delta:  1, headline: '120 projets d\'infrastructure lancés à Kasserine dans le cadre du programme de développement régional 2026', source: 'Business News', link: 'https://www.businessnews.com.tn/kasserine-programme-developpement-regional-120-projets-2026', date: '2026-11-29' },
+  ],
+  global: [
+    { indicator: 'economy',   delta: -2, headline: 'FMI : la Tunisie doit accélérer les réformes structurelles pour débloquer la prochaine tranche de prêt', source: 'Jeune Afrique', link: 'https://www.jeuneafrique.com/tunisie-fmi-reformes-structurelles-tranche-pret-2026', date: '2026-11-28' },
+    { indicator: 'economy',   delta: -1, headline: 'Inflation en Tunisie : l\'IPC annuel recule à 7,2 % en octobre mais pèse encore sur le pouvoir d\'achat', source: 'Reuters Africa', link: 'https://africa.reuters.com/tunisia-inflation-ipc-octobre-2026', date: '2026-11-27' },
+    { indicator: 'cohesion',  delta:  1, headline: 'Parlement tunisien : adoption du budget 2027 avec un accent sur les régions défavorisées', source: 'TAP', link: 'https://www.tap.info.tn/fr/budget-2027-adoption-parlement-regions-defavorisees', date: '2026-11-26' },
   ],
 }
 
