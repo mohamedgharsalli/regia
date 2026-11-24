@@ -1,0 +1,77 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.2 Install deps: `npm install` (+ recharts for gauges/charts)": [
+      {
+        "executionId": "eb14d821-dd48-4111-88ee-86b59d259911",
+        "chatSessionId": "sess_719d5a61-2441-4ac1-8db7-057ed71f1788",
+        "timestamp": 1795477838029
+      },
+      {
+        "executionId": "eb14d821-dd48-4111-88ee-86b59d259911",
+        "chatSessionId": "sess_719d5a61-2441-4ac1-8db7-057ed71f1788",
+        "timestamp": 1795477948676
+      }
+    ],
+    "2.1 Create `src/data/deputies.js` with the 5 deputies: region, title, issues, facts + sources, starting indicators, sensitivities": [
+      {
+        "executionId": "b08701b1-e974-451c-b6b1-47efd47607ed",
+        "chatSessionId": "sess_18db49d1-8a5e-45ac-ae27-c536ea67051a",
+        "timestamp": 1795478454175
+      },
+      {
+        "executionId": "b08701b1-e974-451c-b6b1-47efd47607ed",
+        "chatSessionId": "sess_18db49d1-8a5e-45ac-ae27-c536ea67051a",
+        "timestamp": 1795478490841
+      }
+    ],
+    "2.2 Create `src/data/laws.js` with 4 preset laws and their base effects": [
+      {
+        "executionId": "cd18ecab-ff6b-4801-9d3d-462acf53ecae",
+        "chatSessionId": "sess_a3a56dea-9424-43e6-a2ba-ec8a379194bc",
+        "timestamp": 1795478602533
+      },
+      {
+        "executionId": "cd18ecab-ff6b-4801-9d3d-462acf53ecae",
+        "chatSessionId": "sess_a3a56dea-9424-43e6-a2ba-ec8a379194bc",
+        "timestamp": 1795478662899
+      }
+    ],
+    "2.3 Create `src/data/news-fallback.js` with cached headlines per region": [
+      {
+        "executionId": "4b4dc462-0c88-44a2-a34e-d08861783ce8",
+        "chatSessionId": "sess_c366d403-4398-48f9-90b1-f973d03ce958",
+        "timestamp": 1795478860770
+      },
+      {
+        "executionId": "4b4dc462-0c88-44a2-a34e-d08861783ce8",
+        "chatSessionId": "sess_c366d403-4398-48f9-90b1-f973d03ce958",
+        "timestamp": 1795478898844
+      }
+    ],
+    "3.1 Implement `src/lib/engine.js`: apply law effects with sensitivities, compute net scores": [
+      {
+        "executionId": "e1b7b901-7263-453b-a490-f7dd8a8f082e",
+        "chatSessionId": "sess_d58128c5-6d66-44c0-acdb-9da0c526462d",
+        "timestamp": 1795479192554
+      },
+      {
+        "executionId": "e1b7b901-7263-453b-a490-f7dd8a8f082e",
+        "chatSessionId": "sess_d58128c5-6d66-44c0-acdb-9da0c526462d",
+        "timestamp": 1795479234176
+      }
+    ],
+    "3.2 Implement voting rule (net > +2 APPROVE, < −2 REJECT, else ABSTAIN)": [
+      {
+        "executionId": "59a682f8-6d98-4eb9-954d-9aa3e4789171",
+        "chatSessionId": "sess_b39ec703-cc6c-4f95-b44b-48c736f556c0",
+        "timestamp": 1795479475977
+      },
+      {
+        "executionId": "59a682f8-6d98-4eb9-954d-9aa3e4789171",
+        "chatSessionId": "sess_b39ec703-cc6c-4f95-b44b-48c736f556c0",
+        "timestamp": 1795479494500
+      }
+    ]
+  }
+}
