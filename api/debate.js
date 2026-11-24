@@ -41,6 +41,8 @@ const GEMINI_API_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent'
 
 const REQUEST_TIMEOUT_MS = 20_000
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
+const GROQ_MODEL = 'llama-3.3-70b-versatile'
 
 // ---------------------------------------------------------------------------
 // Prompt builder
@@ -165,7 +167,31 @@ function parseGeminiResponse(text) {
 // ---------------------------------------------------------------------------
 // Main handler
 // ---------------------------------------------------------------------------
+// Groq fallback (OpenAI-compatible chat API)
+async function callGroq(prompt, apiKey, signal) {
+  const response = await fetch(GROQ_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    signal,
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.4,
+      max_tokens: 1024,
+    }),
+  })
 
+  if (!response.ok) {
+    const errText = await response.text().catch(() => '')
+    throw new Error(`Groq returned ${response.status}: ${errText.slice(0, 200)}`)
+  }
+
+  const json = await response.json()
+  return json?.choices?.[0]?.message?.content ?? ''
+}
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
@@ -188,79 +214,108 @@ export default async function handler(req, res) {
   }
 
   const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) {
-    console.warn('[api/debate] GEMINI_API_KEY not set — using fallback reasoning')
-    return res.status(200).json({
-      lines:  buildFallbackLines(deputies, results),
-      model:  'fallback',
-    })
-  }
+const groqKey = process.env.GROQ_API_KEY
+if (!apiKey && !groqKey) {
+  console.warn('[api/debate] No LLM key set — using fallback reasoning')
+  return res.status(200).json({
+    lines:  buildFallbackLines(deputies, results),
+    model:  'fallback',
+  })
+}
 
   const prompt = buildPrompt(deputies, law, results)
 
+let llmText = ''
+let modelUsed = ''
+
+// 1) Gemini first (with retries on temporary overload)
+if (apiKey) {
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
-    let geminiText
     try {
       // Retry on temporary overload (503/429): the error is transient,
-// a second attempt a few seconds later often succeeds.
-let response
-for (let attempt = 1; attempt <= 3; attempt++) {
-  response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    signal:  controller.signal,
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature:     0.4,   // low for consistent structured output
-        maxOutputTokens: 1024,
-        responseMimeType: 'application/json',
-      },
-    }),
-  })
+      // a second attempt a few seconds later often succeeds.
+      let response
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal:  controller.signal,
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature:     0.4,   // low for consistent structured output
+              maxOutputTokens: 1024,
+              responseMimeType: 'application/json',
+            },
+          }),
+        })
 
-  if (response.ok) break
+        if (response.ok) break
 
-  if ((response.status === 503 || response.status === 429) && attempt < 3) {
-    await new Promise((r) => setTimeout(r, 2000 * attempt))
-    continue
-  }
+        if ((response.status === 503 || response.status === 429) && attempt < 3) {
+          await new Promise((r) => setTimeout(r, 2000 * attempt))
+          continue
+        }
 
-  const errText = await response.text().catch(() => '')
-  throw new Error(`Gemini returned ${response.status}: ${errText.slice(0, 200)}`)
-}
+        const errText = await response.text().catch(() => '')
+        throw new Error(`Gemini returned ${response.status}: ${errText.slice(0, 200)}`)
+      }
 
-    const json = await response.json()
-      geminiText = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+      const json = await response.json()
+      llmText = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
     } finally {
       clearTimeout(timeout)
     }
 
-    if (!geminiText) throw new Error('Empty response from Gemini')
-
-    let lines
-    try {
-      lines = parseGeminiResponse(geminiText)
-    } catch (parseErr) {
-      console.error('[api/debate] JSON parse failed, using fallback:', parseErr?.message)
-      lines = buildFallbackLines(deputies, results)
-    }
-
-    // Ensure every deputy has an entry (fill gaps with fallback)
-    const lineMap = new Map(lines.map((l) => [l.deputyId, l]))
-    const fallbackLines = buildFallbackLines(deputies, results)
-    const merged = fallbackLines.map((fb) => lineMap.get(fb.deputyId) ?? fb)
-
-    return res.status(200).json({ lines: merged, model: 'gemini-3.5-flash-lite' })
-
-  } catch (err) {
-    console.error('[api/debate] error, using fallback:', err?.message ?? err)
-    return res.status(200).json({
-      lines:  buildFallbackLines(deputies, results),
-      model:  'fallback',
-    })
+    if (!llmText) throw new Error('Empty response from Gemini')
+    modelUsed = 'gemini-3.5-flash-lite'
+  } catch (geminiErr) {
+    console.error('[api/debate] Gemini failed:', geminiErr?.message ?? geminiErr)
+    llmText = ''
   }
+}
+
+// 2) Groq backup if Gemini failed
+if (!llmText && groqKey) {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+    try {
+      llmText = await callGroq(prompt, groqKey, controller.signal)
+    } finally {
+      clearTimeout(timeout)
+    }
+    if (!llmText) throw new Error('Empty response from Groq')
+    modelUsed = 'groq-llama-3.3-70b'
+  } catch (groqErr) {
+    console.error('[api/debate] Groq failed:', groqErr?.message ?? groqErr)
+    llmText = ''
+  }
+}
+
+// 3) Template fallback if both LLMs failed
+if (!llmText) {
+  return res.status(200).json({
+    lines:  buildFallbackLines(deputies, results),
+    model:  'fallback',
+  })
+}
+
+let lines
+try {
+  lines = parseGeminiResponse(llmText)
+} catch (parseErr) {
+  console.error('[api/debate] JSON parse failed, using fallback:', parseErr?.message)
+  lines = buildFallbackLines(deputies, results)
+}
+
+// Ensure every deputy has an entry (fill gaps with fallback)
+const lineMap = new Map(lines.map((l) => [l.deputyId, l]))
+const fallbackLines = buildFallbackLines(deputies, results)
+const merged = fallbackLines.map((fb) => lineMap.get(fb.deputyId) ?? fb)
+
+return res.status(200).json({ lines: merged, model: modelUsed })
 }
