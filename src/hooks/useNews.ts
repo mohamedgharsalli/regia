@@ -53,11 +53,12 @@ function clamp(v: number): number {
 /**
  * Apply a list of NewsImpacts to a deputies array.
  * Returns a NEW array; originals are not mutated.
+ * Generic so the full deputy shape is preserved.
  */
-export function applyNewsImpacts(
-  deputies: Deputy[],
+export function applyNewsImpacts<T extends Deputy>(
+  deputies: T[],
   impacts: NewsImpact[],
-): Deputy[] {
+): T[] {
   return deputies.map((deputy) => {
     const relevant = impacts.filter((imp) => imp.region === deputy.id)
     if (!relevant.length) return deputy

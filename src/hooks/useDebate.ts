@@ -55,7 +55,7 @@ export interface RoundResult {
 export interface AmendmentInfo {
   losingId:    string          // deputyId of losing region
   losingRegion: string         // human-readable name
-  amendedLaw:  object          // full amended law object (from engine)
+  amendedLaw:  Law             // full amended law object (from engine)
   amendEffect: {               // the single new effect added
     indicator:   string
     delta:       number
