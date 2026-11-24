@@ -38,7 +38,7 @@
 // ---------------------------------------------------------------------------
 
 const GEMINI_API_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent'
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent'
 
 const REQUEST_TIMEOUT_MS = 20_000
 
@@ -244,7 +244,7 @@ export default async function handler(req, res) {
     const fallbackLines = buildFallbackLines(deputies, results)
     const merged = fallbackLines.map((fb) => lineMap.get(fb.deputyId) ?? fb)
 
-    return res.status(200).json({ lines: merged, model: 'gemini-2.0-flash-lite' })
+    return res.status(200).json({ lines: merged, model: 'gemini-3.5-flash-lite' })
 
   } catch (err) {
     console.error('[api/debate] error, using fallback:', err?.message ?? err)
