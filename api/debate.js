@@ -42,7 +42,9 @@ const GEMINI_API_URL =
 
 const REQUEST_TIMEOUT_MS = 20_000
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const GROQ_MODEL = 'llama-3.3-70b-versatile'
+const GROQ_MODEL = 'openai/gpt-oss-120b'
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const OPENROUTER_MODEL = 'openrouter/free'
 
 // ---------------------------------------------------------------------------
 // Prompt builder
@@ -192,6 +194,31 @@ async function callGroq(prompt, apiKey, signal) {
   const json = await response.json()
   return json?.choices?.[0]?.message?.content ?? ''
 }
+// OpenRouter free-model router (OpenAI-compatible chat API)
+async function callOpenRouter(prompt, apiKey, signal) {
+  const response = await fetch(OPENROUTER_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+      'HTTP-Referer': 'https://regia-blond.vercel.app',
+      'X-Title': 'REGIA',
+    },
+    signal,
+    body: JSON.stringify({
+      model: OPENROUTER_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.4,
+      max_tokens: 1024,
+    }),
+  })
+  if (!response.ok) {
+    const errText = await response.text().catch(() => '')
+    throw new Error(`OpenRouter returned ${response.status}: ${errText.slice(0, 200)}`)
+  }
+  const json = await response.json()
+  return json?.choices?.[0]?.message?.content ?? ''
+}
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
@@ -213,18 +240,18 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required fields: deputies, law, results' })
   }
 
-  const apiKey = process.env.GEMINI_API_KEY
+const apiKey = process.env.GEMINI_API_KEY
 const groqKey = process.env.GROQ_API_KEY
-if (!apiKey && !groqKey) {
+const openRouterKey = process.env.OPENROUTER_API_KEY
+if (!apiKey && !groqKey && !openRouterKey) {
   console.warn('[api/debate] No LLM key set — using fallback reasoning')
   return res.status(200).json({
-    lines:  buildFallbackLines(deputies, results),
-    model:  'fallback',
+    lines: buildFallbackLines(deputies, results),
+    model: 'fallback',
   })
 }
 
-  const prompt = buildPrompt(deputies, law, results)
-
+const prompt = buildPrompt(deputies, law, results)
 let llmText = ''
 let modelUsed = ''
 
@@ -233,43 +260,37 @@ if (apiKey) {
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
-
     try {
       // Retry on temporary overload (503/429): the error is transient,
       // a second attempt a few seconds later often succeeds.
       let response
       for (let attempt = 1; attempt <= 3; attempt++) {
         response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-          method:  'POST',
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          signal:  controller.signal,
+          signal: controller.signal,
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-              temperature:     0.4,   // low for consistent structured output
+              temperature: 0.4, // low for consistent structured output
               maxOutputTokens: 1024,
               responseMimeType: 'application/json',
             },
           }),
         })
-
         if (response.ok) break
-
         if ((response.status === 503 || response.status === 429) && attempt < 3) {
           await new Promise((r) => setTimeout(r, 2000 * attempt))
           continue
         }
-
         const errText = await response.text().catch(() => '')
         throw new Error(`Gemini returned ${response.status}: ${errText.slice(0, 200)}`)
       }
-
       const json = await response.json()
       llmText = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
     } finally {
       clearTimeout(timeout)
     }
-
     if (!llmText) throw new Error('Empty response from Gemini')
     modelUsed = 'gemini-3.5-flash-lite'
   } catch (geminiErr) {
@@ -278,7 +299,25 @@ if (apiKey) {
   }
 }
 
-// 2) Groq backup if Gemini failed
+// 2) OpenRouter free router if Gemini failed
+if (!llmText && openRouterKey) {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+    try {
+      llmText = await callOpenRouter(prompt, openRouterKey, controller.signal)
+    } finally {
+      clearTimeout(timeout)
+    }
+    if (!llmText) throw new Error('Empty response from OpenRouter')
+    modelUsed = 'openrouter-free'
+  } catch (openRouterErr) {
+    console.error('[api/debate] OpenRouter failed:', openRouterErr?.message ?? openRouterErr)
+    llmText = ''
+  }
+}
+
+// 3) Groq (gpt-oss-120b) as final backup
 if (!llmText && groqKey) {
   try {
     const controller = new AbortController()
@@ -289,18 +328,18 @@ if (!llmText && groqKey) {
       clearTimeout(timeout)
     }
     if (!llmText) throw new Error('Empty response from Groq')
-    modelUsed = 'groq-llama-3.3-70b'
+    modelUsed = 'groq-gpt-oss-120b'
   } catch (groqErr) {
     console.error('[api/debate] Groq failed:', groqErr?.message ?? groqErr)
     llmText = ''
   }
 }
 
-// 3) Template fallback if both LLMs failed
+// 4) Template fallback if all LLMs failed
 if (!llmText) {
   return res.status(200).json({
-    lines:  buildFallbackLines(deputies, results),
-    model:  'fallback',
+    lines: buildFallbackLines(deputies, results),
+    model: 'fallback',
   })
 }
 
