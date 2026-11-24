@@ -204,26 +204,36 @@ export default async function handler(req, res) {
 
     let geminiText
     try {
-      const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal:  controller.signal,
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature:     0.4,   // low for consistent structured output
-            maxOutputTokens: 1024,
-            responseMimeType: 'application/json',
-          },
-        }),
-      })
+      // Retry on temporary overload (503/429): the error is transient,
+// a second attempt a few seconds later often succeeds.
+let response
+for (let attempt = 1; attempt <= 3; attempt++) {
+  response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    signal:  controller.signal,
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature:     0.4,   // low for consistent structured output
+        maxOutputTokens: 1024,
+        responseMimeType: 'application/json',
+      },
+    }),
+  })
 
-      if (!response.ok) {
-        const errText = await response.text().catch(() => '')
-        throw new Error(`Gemini returned ${response.status}: ${errText.slice(0, 200)}`)
-      }
+  if (response.ok) break
 
-      const json = await response.json()
+  if ((response.status === 503 || response.status === 429) && attempt < 3) {
+    await new Promise((r) => setTimeout(r, 2000 * attempt))
+    continue
+  }
+
+  const errText = await response.text().catch(() => '')
+  throw new Error(`Gemini returned ${response.status}: ${errText.slice(0, 200)}`)
+}
+
+    const json = await response.json()
       geminiText = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
     } finally {
       clearTimeout(timeout)
