@@ -14,60 +14,35 @@ import { useDebate } from './hooks/useDebate.ts'
 
 // ── Custom law form ──────────────────────────────────────────────────────────
 
-type SensitivityKey = 'labour' | 'water' | 'investment' | 'tax'
-
 interface CustomLawForm {
   title: string
   description: string
-  economy: number
-  resources: number
-  cohesion: number
-  sensitivity: SensitivityKey
 }
-
-const SENSITIVITY_OPTIONS: { value: SensitivityKey; label: string }[] = [
-  { value: 'labour',     label: 'Labour' },
-  { value: 'water',      label: 'Water' },
-  { value: 'investment', label: 'Investment' },
-  { value: 'tax',        label: 'Tax' },
-]
 
 const DEFAULT_FORM: CustomLawForm = {
-  title: '', description: '', economy: 0, resources: 0, cohesion: 0, sensitivity: 'labour',
+  title: '', description: '',
 }
 
-function buildCustomLaw(form: CustomLawForm) {
-  const effects: { indicator: string; delta: number; sensitivity: string }[] = []
-  if (form.economy   !== 0) effects.push({ indicator: 'economy',   delta: form.economy,   sensitivity: form.sensitivity })
-  if (form.resources !== 0) effects.push({ indicator: 'resources', delta: form.resources, sensitivity: form.sensitivity })
-  if (form.cohesion  !== 0) effects.push({ indicator: 'cohesion',  delta: form.cohesion,  sensitivity: form.sensitivity })
-  if (effects.length === 0) effects.push({ indicator: 'economy',   delta: 0,              sensitivity: form.sensitivity })
+interface AssessedEffect { indicator: string; delta: number; sensitivity: string }
+
+interface Assessment {
+  proposalType: 'law' | 'amendment'
+  amendedArticle: string | null
+  verdict: 'allow' | 'warn' | 'block' | 'unreviewed'
+  flags: string[]
+  reason: string
+  effects: AssessedEffect[]
+}
+
+// The effects of a custom law come only from /api/assess (the AI reads the
+// law's text). A real parliament never votes on effect sliders.
+function buildCustomLaw(form: CustomLawForm, effects: AssessedEffect[]) {
   return {
     id: 'custom-law',
     title: form.title.trim() || 'Custom law',
     description: form.description.trim() || 'User-proposed law.',
     effects,
   }
-}
-
-interface DeltaSliderProps { label: string; value: number; onChange: (v: number) => void }
-function DeltaSlider({ label, value, onChange }: DeltaSliderProps) {
-  const sign   = value > 0 ? '+' : ''
-  const colour = value > 0 ? 'var(--bar-high)' : value < 0 ? 'var(--bar-low)' : 'var(--text)'
-  return (
-    <div className="delta-slider">
-      <div className="delta-slider__header">
-        <label className="delta-slider__label">{label}</label>
-        <span className="delta-slider__value" style={{ color: colour }}>{sign}{value}</span>
-      </div>
-      <input type="range" min={-5} max={5} step={1} value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="delta-slider__input" aria-label={`${label} effect delta`} />
-      <div className="delta-slider__ticks" aria-hidden="true">
-        <span>−5</span><span>0</span><span>+5</span>
-      </div>
-    </div>
-  )
 }
 
 // ── Deputy detail panel (shown when a 3D seat is clicked) ───────────────────
@@ -133,6 +108,8 @@ function App() {
   const [selectedLawId, setSelectedLawId]   = useState<string | null>(null)
   const [customForm, setCustomForm]         = useState<CustomLawForm>(DEFAULT_FORM)
   const [customActive, setCustomActive]     = useState(false)
+  const [assessment, setAssessment]         = useState<Assessment | null>(null)
+  const [assessing, setAssessing]           = useState(false)
   const [selectedDeputyId, setSelectedDeputyId] = useState<string | null>(null)
   const [revealKey, setRevealKey]           = useState(0)
 
@@ -155,11 +132,33 @@ function App() {
   }, [resetDebate])
 
   const handleSelectCustom = useCallback(() => {
-    setSelectedLawId(null); resetDebate(); setCustomActive(prev => !prev)
+    setSelectedLawId(null); resetDebate(); setAssessment(null); setCustomActive(prev => !prev)
   }, [resetDebate])
 
-  const handleSimulate = useCallback(() => {
-    if (customActive) { simulate(deputies, buildCustomLaw(customForm)); return }
+  const handleSimulate = useCallback(async () => {
+    if (customActive) {
+      setAssessing(true)
+      setAssessment(null)
+      try {
+        const res = await fetch('/api/assess', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: customForm.title, description: customForm.description }),
+        })
+        const data = await res.json()
+        if (!res.ok || data.verdict === 'unreviewed') {
+          setAssessment({ proposalType: 'law', amendedArticle: null, verdict: 'unreviewed', flags: [], reason: data.reason || 'AI review unavailable — please try again.', effects: [] })
+          setAssessing(false)
+          return
+        }
+        setAssessment(data)
+        simulate(deputies, buildCustomLaw(customForm, data.effects))
+      } catch {
+        setAssessment({ proposalType: 'law', amendedArticle: null, verdict: 'unreviewed', flags: [], reason: 'AI review unavailable — please try again.', effects: [] })
+      }
+      setAssessing(false)
+      return
+    }
     if (!selectedLawId) return
     const law = laws.find(l => l.id === selectedLawId)
     if (law) simulate(deputies, law)
@@ -173,13 +172,12 @@ function App() {
   }, [firstRound, resetDebate])
 
   const activeLawId  = customActive ? 'custom-law' : selectedLawId
-  const selectedLaw  = customActive ? buildCustomLaw(customForm) : laws.find(l => l.id === selectedLawId) ?? null
-  const isSimulating = status === 'simulating' || status === 'fetching'
+  const selectedLaw  = customActive ? buildCustomLaw(customForm, assessment?.effects ?? []) : laws.find(l => l.id === selectedLawId) ?? null
+  const isSimulating = status === 'simulating' || status === 'fetching' || assessing
   const isAmending   = status === 'amending'
   const hasFirst     = firstRound !== null
   const hasSecond    = secondRound !== null && gaugesBefore !== null && gaugesAfter !== null
-  const customFormValid = customForm.title.trim().length > 0 &&
-    (customForm.economy !== 0 || customForm.resources !== 0 || customForm.cohesion !== 0)
+  const customFormValid = customForm.title.trim().length > 0
   const canSimulate = customActive ? customFormValid : !!selectedLawId
 
   // The 3D chamber shows votes once the engine has results
@@ -271,7 +269,7 @@ function App() {
               className={`law-btn law-btn--custom${customActive ? ' law-btn--active' : ''}`}
               onClick={handleSelectCustom}>
               <span className="law-btn__title">✦ Propose your own law</span>
-              <span className="law-btn__desc">Define title, effects and sensitivity lever, then simulate through the same debate flow.</span>
+              <span className="law-btn__desc">Write the title and text of your law — the AI estimates its effects from the text, then the parliament votes.</span>
             </button>
           </div>
 
@@ -294,35 +292,12 @@ function App() {
                     onChange={e => handleFormChange('description', e.target.value)} />
                 </div>
               </div>
-              <div className="custom-law-form__effects">
-                <p className="custom-law-form__effects-label">
-                  Effects <span className="custom-law-form__hint">(at least one must be non-zero)</span>
-                </p>
-                <div className="custom-law-form__sliders">
-                  <DeltaSlider label="Economy"   value={customForm.economy}   onChange={v => handleFormChange('economy',   v)} />
-                  <DeltaSlider label="Resources" value={customForm.resources} onChange={v => handleFormChange('resources', v)} />
-                  <DeltaSlider label="Cohesion"  value={customForm.cohesion}  onChange={v => handleFormChange('cohesion',  v)} />
-                </div>
-              </div>
-              <div className="custom-law-form__lever">
-                <label className="custom-law-form__label">Sensitivity lever</label>
-                <div className="custom-law-form__lever-options" role="radiogroup" aria-label="Sensitivity lever">
-                  {SENSITIVITY_OPTIONS.map(opt => (
-                    <label key={opt.value} className="custom-law-form__lever-option">
-                      <input type="radio" name="sensitivity" value={opt.value}
-                        checked={customForm.sensitivity === opt.value}
-                        onChange={() => handleFormChange('sensitivity', opt.value)} />
-                      <span>{opt.label}</span>
-                    </label>
-                  ))}
-                </div>
-                <p className="custom-law-form__lever-hint">
-                  All three effects above are scaled by this lever — matching deputies who are sensitive to it will feel the law more strongly.
-                </p>
-              </div>
+              <p className="custom-law-form__lever-hint">
+                The AI reads your law's text, estimates its effects and flags absurd or harmful content — the parliament then votes on the estimated effects.
+              </p>
               {!customFormValid && (
                 <p className="custom-law-form__validation" role="alert" aria-live="polite">
-                  Add a title and set at least one effect to non-zero before simulating.
+                  Add a title before simulating.
                 </p>
               )}
             </div>
@@ -345,11 +320,32 @@ function App() {
             <span className="sim-badge sim-badge--inline">Simulated scenario</span>
           </h2>
 
-          {!hasFirst && (
+          {!hasFirst && !(customActive && assessment && assessment.verdict === 'unreviewed') && (
             <div className="results-placeholder">
               <p className="placeholder-text">
                 Select a law above and click <strong>Simulate vote</strong> to see the debate, votes and amendment.
               </p>
+            </div>
+          )}
+
+          {customActive && assessment && assessment.verdict === 'unreviewed' && !hasFirst && (
+            <div className="results-placeholder">
+              <p className="placeholder-text">
+                ⚠ {assessment.reason} The review is needed to estimate the law's effects.
+              </p>
+            </div>
+          )}
+
+          {customActive && hasFirst && assessment && assessment.verdict !== 'unreviewed' && (
+            <div className="law-flag" role="alert" style={{ border: '1px solid var(--border)', borderLeft: `4px solid ${assessment.verdict === 'block' ? '#c0392b' : '#d4a017'}`, padding: '12px 14px', marginBottom: '12px' }}>
+              <strong>{assessment.verdict === 'block' ? '⚑ Reality & Ethics Flag' : '⚠ AI review note'}: </strong>
+              <span>{assessment.reason}</span>
+              {assessment.flags.length > 0 && (
+                <ul style={{ margin: '6px 0 0', paddingLeft: '18px' }}>
+                  {assessment.flags.map(f => <li key={f}>{f}</li>)}
+                </ul>
+              )}
+              {assessment.amendedArticle && <p style={{ margin: '6px 0 0' }}>Amended article: {assessment.amendedArticle}</p>}
             </div>
           )}
 
