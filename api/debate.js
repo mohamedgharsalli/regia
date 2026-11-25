@@ -27,10 +27,15 @@
  *   - LLM MUST cite one real fact from the deputy's dossier
  *   - LLM MUST NOT change the vote; it only explains it
  *   - Response MUST be a JSON array, no prose wrapper
+ *   - VARIETY: each deputy opens with a DIFFERENT rhetorical move
+ *     (question / number / consequence / challenge / personal stake),
+ *     and NO deputy may open with a general description of their region.
+ *     The cited fact comes AFTER the opening sentence, never as the opener.
  *
  * Fallback: if Gemini is unavailable or the response is malformed,
  * the function returns template-generated reasoning lines so the
- * UI always shows something meaningful.
+ * UI always shows something meaningful. Fallback lines also vary:
+ * random opening phrase, a delta-based clause, and a random fact.
  */
 
 // ---------------------------------------------------------------------------
@@ -46,6 +51,17 @@ const GROQ_MODEL = 'openai/gpt-oss-120b'
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const OPENROUTER_MODEL = 'openrouter/free'
 
+// One distinct opening move per deputy (rotated by position in the list).
+// This is what stops all five lines from starting with the same
+// "Even though my region is..." regional-fact clause.
+const OPENING_MOVES = [
+  'Ask a pointed question about the law\u2019s real effect.',
+  'Open with the exact number that matters most to your region (the largest delta).',
+  'Open with a concrete consequence: what happens in your region if this law passes.',
+  'Open by challenging one likely objection or a colleague\u2019s assumption.',
+  'Open with what is personally at stake for the people of your region.',
+]
+
 // ---------------------------------------------------------------------------
 // Prompt builder
 // ---------------------------------------------------------------------------
@@ -58,7 +74,7 @@ const OPENROUTER_MODEL = 'openrouter/free'
 function buildPrompt(deputies, law, results) {
   const resultMap = new Map(results.map((r) => [r.deputyId, r]))
 
-  const deputySections = deputies.map((deputy) => {
+  const deputySections = deputies.map((deputy, i) => {
     const r = resultMap.get(deputy.id)
     if (!r) return ''
 
@@ -80,7 +96,8 @@ DEPUTY: ${deputy.id}
 ${facts}
   Law effect on this deputy: ${deltaLines || 'no change'}
   Net score: ${r.netScore.toFixed(2)}
-  VOTE (FIXED — do not change): ${r.vote}`.trim()
+  VOTE (FIXED — do not change): ${r.vote}
+  OPENING MOVE (use this one, do not copy another deputy's opening): ${OPENING_MOVES[i % OPENING_MOVES.length]}`.trim()
   }).join('\n\n')
 
   return `You are a parliamentary debate writer for REGIA, a simplified educational parliament simulator.
@@ -96,6 +113,8 @@ STRICT RULES:
 3. Do NOT invent numbers. If you mention an indicator change, use the exact delta shown above.
 4. Write in first person as the deputy. Keep it concise and grounded — this is a parliament, not a speech.
 5. Write in English.
+6. VARIETY — this is mandatory: each deputy MUST open with the OPENING MOVE assigned to them above, and NO two deputies may open the same way. NEVER open with a general description of your region (no "Even though...", "As...", "Since...", "While..." + region fact). The cited dossier fact must come AFTER your opening sentence, never as the opening clause.
+7. Each reasoning MUST mention at least one exact delta number from the law effect above — argue from what the law DOES to your region, not from your region's general profile.
 
 ${deputySections}
 
@@ -116,9 +135,46 @@ Respond with a JSON array ONLY — no markdown, no prose wrapper. Format:
 // ---------------------------------------------------------------------------
 
 const VOTE_PHRASES = {
-  APPROVE: ['I support this law', 'This measure benefits my region', 'I vote in favour'],
-  REJECT:  ['I oppose this law', 'This would harm my region', 'I cannot support this'],
-  ABSTAIN: ['The effects are mixed for my region', 'I find myself unable to decide', 'I abstain given the trade-offs'],
+  APPROVE: [
+    'I support this law',
+    'This measure benefits my region',
+    'I vote in favour',
+    'My region gains from this',
+    'This is the right call for us',
+  ],
+  REJECT: [
+    'I oppose this law',
+    'This would harm my region',
+    'I cannot support this',
+    'My region loses under this law',
+    'This is the wrong call for us',
+  ],
+  ABSTAIN: [
+    'The effects are mixed for my region',
+    'I find myself unable to decide',
+    'I abstain given the trade-offs',
+    'The gains and the losses cancel out for us',
+    'I need more than this law offers to decide',
+  ],
+}
+
+/** Pick a random element from an array */
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+/** Build a short clause from the deputy's largest indicator delta, e.g. "Economy +2.50 for us" */
+function deltaClause(r) {
+  if (!r) return ''
+  const deltas = [
+    { name: 'Economy',   value: r.deltaEconomy },
+    { name: 'Resources', value: r.deltaResources },
+    { name: 'Cohesion',  value: r.deltaCohesion },
+  ].filter((d) => typeof d.value === 'number' && d.value !== 0)
+  if (!deltas.length) return 'It changes little for us'
+  deltas.sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+  const top = deltas[0]
+  return `${top.name} ${top.value > 0 ? '+' : ''}${top.value.toFixed(2)} for us`
 }
 
 function buildFallbackLines(deputies, results) {
@@ -127,13 +183,15 @@ function buildFallbackLines(deputies, results) {
   return deputies.map((deputy) => {
     const r = resultMap.get(deputy.id)
     const vote = r?.vote ?? 'ABSTAIN'
-    const phrases = VOTE_PHRASES[vote]
-    const phrase = phrases[Math.floor(Math.random() * phrases.length)]
-    const fact = deputy.facts?.[0]
+    const phrase = pick(VOTE_PHRASES[vote])
+    // Random fact, not always the first — otherwise every debate cites the same line
+    const fact = deputy.facts?.length
+      ? deputy.facts[Math.floor(Math.random() * deputy.facts.length)]
+      : undefined
 
     return {
       deputyId:    deputy.id,
-      reasoning:   `${phrase}. ${fact ? `As noted, ${fact.text.toLowerCase().replace(/\.$/, '')}.` : ''}`,
+      reasoning:   `${phrase} — ${deltaClause(r)}.${fact ? ` As noted, ${fact.text.toLowerCase().replace(/\.$/, '')}.` : ''}`,
       citedFact:   fact?.text    ?? '',
       citedSource: fact?.source  ?? '',
     }
@@ -181,7 +239,7 @@ async function callGroq(prompt, apiKey, signal) {
     body: JSON.stringify({
       model: GROQ_MODEL,
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.4,
+      temperature: 0.7,
       max_tokens: 1024,
     }),
   })
@@ -208,7 +266,7 @@ async function callOpenRouter(prompt, apiKey, signal) {
     body: JSON.stringify({
       model: OPENROUTER_MODEL,
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.4,
+      temperature: 0.7,
       max_tokens: 1024,
     }),
   })
@@ -272,7 +330,7 @@ if (apiKey) {
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-              temperature: 0.4, // low for consistent structured output
+              temperature: 0.7, // higher for varied phrasing; structure still enforced by JSON mode
               maxOutputTokens: 1024,
               responseMimeType: 'application/json',
             },

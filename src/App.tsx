@@ -121,8 +121,9 @@ function App() {
   } = useDebate()
 
   useEffect(() => {
-    setDeputies(impacts.length === 0 ? initialDeputies : applyNewsImpacts(initialDeputies, impacts))
-  }, [impacts])
+  setDeputies(impacts.length === 0 ? initialDeputies : applyNewsImpacts(initialDeputies, impacts))
+  resetDebate()
+}, [impacts, resetDebate])
 
   const handleRefresh = useCallback(() => { refresh(); resetDebate() }, [refresh, resetDebate])
 
@@ -201,15 +202,14 @@ function App() {
         </div>
       </header>
 
-      <main className="app-main">
+      <main className="app-main app-layout">
+        <div className="app-main-col">
         {/* ── Dashboard gauges ──────────────────────────────────────────── */}
         <section className="section-gauges" aria-label="Chamber gauges">
-          <Dashboard deputies={deputies} />
+        <Dashboard deputies={deputies} gauges={gaugesAfter ?? undefined} />
         </section>
 
-        {/* ── News panel ────────────────────────────────────────────────── */}
-        <NewsPanel impacts={impacts} loading={newsLoading} dataSource={dataSource}
-          error={newsError} onRefresh={handleRefresh} />
+      
 
         {/* ── 3D Chamber + detail panel ─────────────────────────────────── */}
         <section className="section-deputies" aria-label="Parliament chamber">
@@ -366,7 +366,14 @@ function App() {
             </div>
           )}
         </section>
-      </main>
+      </div>{/* end .app-main-col */}
+
+{/* ── News panel: sticky right sidebar ── */}
+<aside className="app-news-col" aria-label="Regional and world news">
+  <NewsPanel impacts={impacts} loading={newsLoading} dataSource={dataSource}
+    error={newsError} onRefresh={handleRefresh} />
+</aside>
+</main>
 
       <footer className="app-footer">
         <span className="sim-badge">Simulated scenario — not a real parliament</span>

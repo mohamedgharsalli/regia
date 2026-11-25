@@ -6,11 +6,15 @@
  *   2. Identifies the losing region (lowest net score)
  *   3. Builds the amended law object (engine.buildAmendedLaw)
  *   4. POSTs to /api/debate for LLM reasoning (one batched call)
+ *   5. Computes gaugesAfter from the first vote — the Chamber Health
+ *      dashboard reads it, so the gauges move right after round 1
+ *      (previously gaugesAfter was only set in round 2, so the gauges
+ *      stayed at the baseline 48/44 after the first vote)
  *
  * Round 2 (amend):
  *   1. Runs the engine on the amended law → DeputyResult[]
  *   2. POSTs to /api/debate for LLM reasoning (second batched call)
- *   3. Computes Stability before/after via applyIndicatorDeltas
+ *   3. Recomputes gaugesAfter via applyIndicatorDeltas (round-2 values)
  *
  * The vote is ALWAYS determined by the engine. The LLM only writes
  * reasoning text — it cannot change any number or vote.
@@ -123,6 +127,15 @@ export function useDebate() {
     // ── Engine: first vote (synchronous) ─────────────────────────────────
     const results = simulateLaw(deputies, law) as DeputyResult[]
     const counts  = tally(results)
+
+    // ── Gauges AFTER the first vote ───────────────────────────────────────
+    // This is what the Chamber Health dashboard displays. Without it the
+    // gauges stay at the baseline until the amendment round.
+    const updatedDeputies = applyIndicatorDeltas(deputies, results)
+    setGaugesAfter({
+      stability:  computeStability(updatedDeputies),
+      happiness:  computeHappiness(updatedDeputies),
+    })
 
     // Surface vote counts immediately; LLM fills in later
     const partial: RoundResult = { results, lines: [], model: 'pending', counts, lawTitle: law.title }
@@ -260,16 +273,39 @@ const VOTE_OPENERS: Record<string, string[]> = {
   ],
 }
 
+/** Pick a random element from an array */
+function pick(arr: string[]) {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+/** Short clause from the deputy's largest indicator delta, e.g. "Economy +2.50 for us" */
+function deltaClause(r: DeputyResult | undefined) {
+  if (!r) return ''
+  const deltas = [
+    { name: 'Economy',   value: r.deltaEconomy },
+    { name: 'Resources', value: r.deltaResources },
+    { name: 'Cohesion',  value: r.deltaCohesion },
+  ].filter((d) => typeof d.value === 'number' && d.value !== 0)
+  if (!deltas.length) return 'It changes little for us.'
+  deltas.sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+  const top = deltas[0]
+  return `${top.name} ${top.value > 0 ? '+' : ''}${top.value.toFixed(2)} for us.`
+}
+
 function buildClientFallback(deputies: Deputy[], results: DeputyResult[]): DebateLine[] {
   const resultMap = new Map(results.map((r) => [r.deputyId, r]))
-  return deputies.map((deputy, i) => {
+  return deputies.map((deputy) => {
     const r      = resultMap.get(deputy.id)
     const vote   = r?.vote ?? 'ABSTAIN'
-    const opener = VOTE_OPENERS[vote][i % VOTE_OPENERS[vote].length]
-    const fact   = deputy.facts?.[0]
+    // Random opener + random fact (not always the first) + the delta clause,
+    // so the five fallback lines no longer read like the same sentence.
+    const opener = pick(VOTE_OPENERS[vote])
+    const fact   = deputy.facts?.length
+      ? deputy.facts[Math.floor(Math.random() * deputy.facts.length)]
+      : undefined
     return {
       deputyId:    deputy.id,
-      reasoning:   `${opener}${fact ? ` ${fact.text}` : ''}`,
+      reasoning:   `${opener} ${deltaClause(r)}${fact ? ` As noted, ${fact.text}` : ''}`,
       citedFact:   fact?.text   ?? '',
       citedSource: fact?.source ?? '',
     }

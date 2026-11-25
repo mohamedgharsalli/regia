@@ -4,6 +4,12 @@
  *
  * Stability  = average cohesion across all deputies
  * Happiness  = average economy across all deputies
+ *
+ * The gauges show the chamber AFTER the latest voted law when the `gauges`
+ * prop is passed (values from useDebate's gaugesAfter). Without it they show
+ * the baseline averages computed from `deputies` (baseline + news impacts).
+ * The source deputies state is never mutated by a simulation — the override
+ * is display-only, so future simulations stay deterministic.
  */
 
 import {
@@ -28,6 +34,8 @@ interface Deputy {
 
 interface Props {
   deputies: Deputy[]
+  /** Post-law gauge values (from useDebate gaugesAfter). Overrides the computed averages when present. */
+  gauges?: { stability: number; happiness: number }
 }
 
 interface GaugeProps {
@@ -87,8 +95,10 @@ function Gauge({ label, value, colour, description }: GaugeProps) {
   )
 }
 
-export function Dashboard({ deputies }: Props) {
-  const { stability, happiness } = computeGauges(deputies)
+export function Dashboard({ deputies, gauges }: Props) {
+  const computed = computeGauges(deputies)
+  const stability = gauges?.stability ?? computed.stability
+  const happiness = gauges?.happiness ?? computed.happiness
 
   return (
     <div className="dashboard">

@@ -4,34 +4,25 @@
 
 /* ── Design tokens ──────────────────────────────────────────── */
 :root {
-  --regia-gold:      #c9a84c;
-  --regia-gold-dim:  rgba(201, 168, 76, 0.18);
-  --regia-teal:      #2dd4bf;
-  --regia-teal-dim:  rgba(45, 212, 191, 0.15);
+  --regia-gold:      #5A7A9A;
+  --regia-gold-dim:  rgba(90, 122, 154, 0.18);
+  --regia-teal:      #5A7A9A;
+  --regia-teal-dim:  rgba(90, 122, 154, 0.15);
 
   /* Indicator bars */
-  --bar-low:   #f87171;   /* red   — economy/cohesion < 40  */
-  --bar-mid:   #fbbf24;   /* amber — 40–59                  */
-  --bar-high:  #34d399;   /* green — ≥ 60                   */
+  --bar-low:   #D6484A;   /* red   — economy/cohesion < 40  */
+  --bar-mid:   #D6A24A;   /* amber — 40–59                  */
+  --bar-high:  #3FBD71;   /* green — ≥ 60                   */
 
   /* Gauges */
-  --gauge-track:      rgba(255,255,255,0.08);
-  --gauge-stability:  #818cf8;   /* indigo */
-  --gauge-happiness:  #34d399;   /* green  */
+  --gauge-track:      rgba(200, 210, 220, 0.08);
+  --gauge-stability:  #5A7A9A;   /* indigo */
+  --gauge-happiness:  #3FBD71;   /* green  */
 
   /* Sim badge */
-  --badge-bg:    rgba(251, 191, 36, 0.12);
-  --badge-text:  #fbbf24;
-  --badge-border: rgba(251, 191, 36, 0.35);
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --gauge-track: rgba(0,0,0,0.08);
-    --badge-bg:    rgba(161, 110, 0, 0.1);
-    --badge-text:  #92610a;
-    --badge-border: rgba(161, 110, 0, 0.3);
-  }
+  --badge-bg:    rgba(90, 122, 154, 0.14);
+  --badge-text:  #D6A24A;
+  --badge-border: rgba(200, 210, 220, 0.16);
 }
 
 /* ── Sim badge ──────────────────────────────────────────────── */
@@ -51,8 +42,8 @@
   white-space: nowrap;
 
   &::before {
-    content: '⚠';
-    font-size: 10px;
+    content: '●';
+    font-size: 8px;
   }
 }
 
@@ -78,7 +69,7 @@
 }
 
 .app-header__inner {
-  max-width: 1126px;
+  max-width: 1480px;
   margin: 0 auto;
   padding: 14px 24px;
   display: flex;
@@ -105,6 +96,7 @@
 }
 
 .app-header__title {
+  font-family: var(--heading);
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -127,7 +119,7 @@
   display: flex;
   flex-direction: column;
   gap: 40px;
-  max-width: 1126px;
+  max-width: 1480px;
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
@@ -140,6 +132,7 @@
 
 /* ── Section heading ────────────────────────────────────────── */
 .section-heading {
+  font-family: var(--heading);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -165,6 +158,7 @@
   display: flex;
   gap: 24px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 /* ── Gauge ──────────────────────────────────────────────────── */
@@ -173,7 +167,7 @@
   max-width: 220px;
   background: var(--code-bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 16px 16px 12px;
   display: flex;
   flex-direction: column;
@@ -217,6 +211,7 @@
 }
 
 .gauge__label {
+  font-family: var(--heading);
   display: block;
   font-size: 14px;
   font-weight: 600;
@@ -248,7 +243,7 @@
 .deputy-card {
   background: var(--code-bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 14px 14px 16px;
   display: flex;
   flex-direction: column;
@@ -272,6 +267,7 @@
 }
 
 .deputy-card__region {
+  font-family: var(--heading);
   font-size: 15px;
   font-weight: 700;
   color: var(--text-h);
@@ -359,7 +355,7 @@
 .law-btn {
   background: var(--code-bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 14px 16px;
   text-align: left;
   cursor: pointer;
@@ -405,8 +401,9 @@
 }
 
 .btn-primary {
-  background: var(--regia-teal);
-  color: #0d1117;
+  background: #1B2330;
+  border: 1px solid rgba(200, 210, 220, 0.16);
+  color: var(--text-h);
   font-size: 14px;
   font-weight: 700;
   border: none;
@@ -414,10 +411,10 @@
   padding: 10px 24px;
   cursor: pointer;
   letter-spacing: 0.03em;
-  transition: opacity 0.2s;
+  transition: border-color 0.2s;
 
   &:hover {
-    opacity: 0.88;
+    border-color: var(--regia-teal);
   }
   &:focus-visible {
     outline: 2px solid var(--regia-teal);
@@ -462,8 +459,8 @@
   color: var(--bar-mid);
   margin: 0;
   padding: 8px 12px;
-  background: rgba(251, 191, 36, 0.08);
-  border: 1px solid rgba(251, 191, 36, 0.25);
+  background: rgba(214, 162, 74, 0.08);
+  border: 1px solid rgba(214, 162, 74, 0.25);
   border-radius: 6px;
 }
 
@@ -583,7 +580,7 @@
 .results-placeholder {
   background: var(--code-bg);
   border: 1px dashed var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 40px 24px;
   text-align: center;
 }
@@ -617,6 +614,7 @@
 }
 
 .vote-results__title {
+  font-family: var(--heading);
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
@@ -759,6 +757,7 @@
 }
 
 .debate-log__title {
+  font-family: var(--heading);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -892,7 +891,7 @@
   gap: 16px;
   background: var(--code-bg);
   border: 1px solid var(--regia-gold);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 18px 20px;
 }
 
@@ -931,7 +930,7 @@
   padding: 12px 14px;
   background: var(--regia-gold-dim);
   border-radius: 7px;
-  border: 1px solid rgba(201, 168, 76, 0.25);
+  border: 1px solid rgba(90, 122, 154, 0.25);
 }
 
 .amendment-effect__label {
@@ -993,6 +992,7 @@
 }
 
 .comparison__title {
+  font-family: var(--heading);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -1231,7 +1231,7 @@
   flex: 0 0 220px;
   background: var(--code-bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -1256,6 +1256,7 @@
 }
 
 .deputy-detail__region {
+  font-family: var(--heading);
   display: block;
   font-size: 15px;
   font-weight: 700;
@@ -1334,7 +1335,7 @@
   gap: 20px;
   background: var(--code-bg);
   border: 1px solid var(--regia-teal);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 18px 20px;
 }
 
@@ -1476,8 +1477,8 @@
   color: var(--bar-mid);
   margin: 0;
   padding: 7px 12px;
-  background: rgba(251, 191, 36, 0.08);
-  border: 1px solid rgba(251, 191, 36, 0.25);
+  background: rgba(214, 162, 74, 0.08);
+  border: 1px solid rgba(214, 162, 74, 0.25);
   border-radius: 6px;
 }
 
@@ -1536,4 +1537,30 @@
 .app-footer__copy {
   font-size: 12px;
   color: var(--text);
+}
+
+/* ── Layout — from the Design Arena design ──────────────────────── */
+.app-main.app-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 1.5rem;
+  align-items: start;
+}
+.app-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  min-width: 0;
+}
+.app-news-col {
+  position: sticky;
+  top: 80px;
+  min-width: 0;
+}
+@media (max-width: 1000px) {
+  .app-main.app-layout { grid-template-columns: minmax(0, 1fr); }
+  .app-news-col { position: static; }
+}
+@media (max-width: 640px) {
+  .app-main-col { gap: 28px; }
 }

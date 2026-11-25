@@ -80,7 +80,10 @@ function isTrusted(item) {
 }
 
 function isFresh(item) {
-  const t = Date.parse(item.pubDate)
+  // NOTE: this runs on the MAPPED item, which carries `date` (ISO string),
+  // not the raw RSS `pubDate` — checking pubDate here always returned NaN
+  // and let every old item through (bug found 2026-11-24 22:39).
+  const t = Date.parse(item.date)
   if (Number.isNaN(t)) return true // no date: keep, do not guess
   const ageMs = Date.now() - t
   return ageMs >= 0 && ageMs <= MAX_AGE_DAYS * 24 * 60 * 60 * 1000
